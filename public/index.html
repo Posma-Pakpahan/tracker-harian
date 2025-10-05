@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Tracker | Vue Edition</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app" v-cloak>
+        <div v-if="!token" class="auth-container">
+            <div class="auth-box">
+                <form v-if="view === 'login'" @submit.prevent="login">
+                    <h2>Login</h2>
+                    <div class="form-group"><label>Username</label><input type="text" v-model="loginForm.username" required></div>
+                    <div class="form-group"><label>Password</label><input type="password" v-model="loginForm.password" required></div>
+                    <p v-if="authError" class="error-message">{{ authError }}</p>
+                    <button type="submit" class="btn-primary">Login</button>
+                    <p class="auth-switch">Belum punya akun? <a @click="view = 'register'">Daftar di sini</a></p>
+                </form>
+                <form v-if="view === 'register'" @submit.prevent="register">
+                    <h2>Register</h2>
+                    <div class="form-group"><label>Username</label><input type="text" v-model="registerForm.username" required></div>
+                    <div class="form-group"><label>Password</label><input type="password" v-model="registerForm.password" required></div>
+                    <p v-if="authError" class="error-message">{{ authError }}</p>
+                    <button type="submit" class="btn-primary">Register</button>
+                    <p class="auth-switch">Sudah punya akun? <a @click="view = 'login'">Login di sini</a></p>
+                </form>
+            </div>
+        </div>
+
+        <div v-if="token" class="container">
+            <header>
+                <div class="header-top">
+                    <h1>Jurnal Aktivitas Mingguan</h1>
+                    <div class="header-user">
+                        <span>Halo, <strong>{{ user.username }}</strong>!</span>
+                        <button @click="logout" class="logout-btn">Logout</button>
+                    </div>
+                </div>
+                <div class="header-controls">
+                    <button @click="toggleEditMode" class="edit-mode-btn">{{ isEditMode ? 'Selesai Mengubah' : 'Ubah Jadwal' }}</button>
+                </div>
+                <nav class="week-nav">
+                    <button @click="changeWeek(-7)">&laquo; Minggu Lalu</button>
+                    <h2>{{ weekDisplay }}</h2>
+                    <button @click="changeWeek(7)">Minggu Depan &raquo;</button>
+                </nav>
+            </header>
+
+            <main>
+                <div class="progress-section">
+                    <h3>Progres Minggu Ini: {{ weeklyData.percentage }}%</h3>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner" :style="{ width: weeklyData.percentage + '%' }"></div>
+                    </div>
+                </div>
+                <div v-if="isLoading" class="loading">Memuat data minggu...</div>
+                <div v-if="!isLoading" class="days-container">
+                    <div v-for="(day, index) in weeklyData.days" :key="day.date" class="day-card">
+                        <div class="day-header">
+                            <h3>{{ day.dayName }}, {{ formatDate(day.date) }}</h3>
+                            <button v-if="isEditMode" @click="openAddModal(day, index)" class="add-btn">+</button>
+                        </div>
+                        <ul class="activity-list">
+                            <li v-for="activity in day.activities" :key="activity.id" 
+                                :class="{ completed: activity.completed, disabled: !isCheckable(activity, day.date) }">
+                                <input type="checkbox" :id="activity.id + day.date" :checked="activity.completed"
+                                       :disabled="!isCheckable(activity, day.date) || isEditMode"
+                                       @change="updateActivity(activity, day.date)">
+                                <label :for="activity.id + day.date">
+                                    <strong>{{ activity.time }}</strong> - {{ activity.name }}
+                                </label>
+                                <div v-if="isEditMode" class="activity-actions">
+                                    <button @click="openEditModal(activity, day, index)" class="action-btn">Ubah</button>
+                                    <button @click="deleteActivity(activity)" class="action-btn delete">Hapus</button>
+                                </div>
+                            </li>
+                            <li v-if="day.activities.length === 0" class="no-activity">Tidak ada jadwal.</li>
+                        </ul>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+            <div class="modal-content">
+                <h3>{{ modal.isEditing ? 'Ubah Aktivitas' : 'Tambah Aktivitas Baru' }}</h3>
+                <form @submit.prevent="saveActivity">
+                    <div class="form-group"><label for="activityName">Nama Aktivitas</label><input type="text" id="activityName" v-model="modal.activity.name" required></div>
+                    <div class="form-group"><label for="activityTime">Waktu (JJ:MM)</label><input type="time" id="activityTime" v-model="modal.activity.time" required></div>
+                    <div class="modal-actions">
+                        <button type="button" @click="closeModal" class="btn-secondary">Batal</button>
+                        <button type="submit" class="btn-primary">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
