@@ -9,7 +9,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = 3000;
+const PORT = 3001;
 const JWT_SECRET = 'rahasia-banget-jangan-disebar';
 
 function createDefaultScheduleForUser(userId) {
@@ -134,5 +134,5 @@ app.delete('/api/activities/:id', authenticateToken, (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`API Server berjalan di http://localhost:${PORT}`);
+    console.log(`API Server berjalan di http://tracker.posma-pakpahan.me:${PORT} (atau localhost:${PORT} untuk dev)`);
 });
