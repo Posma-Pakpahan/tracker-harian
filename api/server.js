@@ -116,34 +116,88 @@ app.post('/api/update', authenticateToken, (req, res) => {
 });
 app.post('/api/activities', authenticateToken, (req, res) => {
     const userId = req.user.id;
-    const { day_of_week, activity_name, start_time, dominant } = req.body;
-    const sql = 'INSERT INTO schedule_templates (user_id, day_of_week, activity_name, start_time, dominant) VALUES (?, ?, ?, ?, ?)';
-    db.run(sql, [userId, day_of_week, activity_name, start_time, dominant ? 1 : 0], function(err) {
+    const { day_of_week, activity_name, start_time } = req.body;
+    const sql = 'INSERT INTO schedule_templates (user_id, day_of_week, activity_name, start_time) VALUES (?, ?, ?, ?)';
+    db.run(sql, [userId, day_of_week, activity_name, start_time], function(err) {
         if (err) return res.status(500).json({ error: err.message });
-        // Sync to future weeks: add to template for all future weeks
-        // (since template is per user, this is already handled)
+        // Activity is automatically available for all future weeks since it's stored in templates
         res.json({ success: true, id: this.lastID });
     });
 });
 app.put('/api/activities/:id', authenticateToken, (req, res) => {
     const userId = req.user.id;
-    const { activity_name, start_time, dominant } = req.body;
-    const sql = 'UPDATE schedule_templates SET activity_name = ?, start_time = ?, dominant = ? WHERE id = ? AND user_id = ?';
-    db.run(sql, [activity_name, start_time, dominant ? 1 : 0, req.params.id, userId], function(err) {
+    const { activity_name, start_time } = req.body;
+    const sql = 'UPDATE schedule_templates SET activity_name = ?, start_time = ? WHERE id = ? AND user_id = ?';
+    db.run(sql, [activity_name, start_time, req.params.id, userId], function(err) {
         if (err) return res.status(500).json({ error: err.message });
+        // Changes automatically apply to all future weeks since templates are used
         res.json({ success: true, changes: this.changes });
     });
 });
 app.delete('/api/activities/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const userId = req.user.id;
-    // Delete all matching activities for user and day_of_week (sync future weeks)
-    db.get('SELECT day_of_week, activity_name FROM schedule_templates WHERE id = ? AND user_id = ?', [id, userId], (err, row) => {
-        if (err || !row) return res.status(500).json({ error: 'Aktivitas tidak ditemukan' });
-        const sql = 'DELETE FROM schedule_templates WHERE user_id = ? AND day_of_week = ? AND activity_name = ?';
-        db.run(sql, [userId, row.day_of_week, row.activity_name], function(err2) {
-            if (err2) return res.status(500).json({ error: err2.message });
+    
+    // Simply delete the activity by ID, which removes it from all future weeks
+    const sql = 'DELETE FROM schedule_templates WHERE id = ? AND user_id = ?';
+    db.run(sql, [id, userId], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        if (this.changes === 0) return res.status(404).json({ error: 'Aktivitas tidak ditemukan' });
+        
+        // Also delete any existing records for this template to clean up
+        const cleanupSql = 'DELETE FROM activity_records WHERE template_id = ? AND user_id = ?';
+        db.run(cleanupSql, [id, userId], (cleanupErr) => {
+            if (cleanupErr) console.warn('Warning: Could not clean up activity records:', cleanupErr.message);
             res.json({ success: true, changes: this.changes });
+        });
+    });
+});
+
+// Smart Activity Pattern Analytics - Get dominant activities based on completion patterns
+app.get('/api/activity-analytics', authenticateToken, (req, res) => {
+    const userId = req.user.id;
+    const daysBack = parseInt(req.query.days) || 30; // Default 30 days analysis
+    
+    const sql = `
+        SELECT 
+            t.activity_name,
+            COUNT(r.completed) as total_times_scheduled,
+            SUM(r.completed) as times_completed,
+            ROUND(CAST(SUM(r.completed) AS FLOAT) / COUNT(r.completed) * 100, 1) as completion_rate,
+            t.day_of_week,
+            t.start_time
+        FROM schedule_templates t
+        LEFT JOIN activity_records r ON t.id = r.template_id 
+            AND r.user_id = ? 
+            AND r.record_date >= date('now', '-${daysBack} days')
+        WHERE t.user_id = ?
+        GROUP BY t.activity_name, t.day_of_week
+        HAVING total_times_scheduled > 0
+        ORDER BY completion_rate DESC, times_completed DESC
+    `;
+    
+    db.all(sql, [userId, userId], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        // Categorize activities into patterns
+        const dominantActivities = rows.filter(row => row.completion_rate >= 70 && row.times_completed >= 5);
+        const strugglingActivities = rows.filter(row => row.completion_rate < 30 && row.total_times_scheduled >= 5);
+        const consistentActivities = rows.filter(row => row.completion_rate >= 50 && row.completion_rate < 70);
+        
+        res.json({
+            analysisPeriod: `${daysBack} days`,
+            totalActivities: rows.length,
+            patterns: {
+                dominant: dominantActivities,
+                consistent: consistentActivities, 
+                struggling: strugglingActivities
+            },
+            insights: {
+                mostDominant: dominantActivities[0] || null,
+                needsAttention: strugglingActivities.slice(0, 3),
+                overallCompletionRate: rows.length > 0 ? 
+                    Math.round(rows.reduce((sum, r) => sum + r.completion_rate, 0) / rows.length) : 0
+            }
         });
     });
 });

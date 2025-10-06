@@ -48,6 +48,7 @@
                 </div>
                 <div class="header-controls">
                     <button @click="toggleEditMode" class="edit-mode-btn">{{ isEditMode ? 'Selesai Mengubah' : 'Ubah Jadwal' }}</button>
+                    <button @click="toggleAnalytics" class="analytics-btn">{{ showAnalytics ? 'Tutup Analitik' : 'Lihat Pola Aktivitas' }}</button>
                 </div>
                 <nav class="week-nav">
                     <button @click="changeWeek(-7)">&laquo; Minggu Lalu</button>
@@ -57,6 +58,54 @@
             </header>
 
             <main>
+                <!-- Analytics Panel -->
+                <div v-if="showAnalytics && analytics" class="analytics-panel">
+                    <h3>📊 Analisis Pola Aktivitas ({{ analytics.analysisPeriod }})</h3>
+                    <div class="analytics-summary">
+                        <div class="summary-card">
+                            <h4>Tingkat Penyelesaian Keseluruhan</h4>
+                            <div class="big-number">{{ analytics.insights.overallCompletionRate }}%</div>
+                        </div>
+                        <div class="summary-card" v-if="analytics.insights.mostDominant">
+                            <h4>Aktivitas Paling Dominan</h4>
+                            <div class="activity-highlight">{{ analytics.insights.mostDominant.activity_name }}</div>
+                            <small>{{ analytics.insights.mostDominant.completion_rate }}% completion rate</small>
+                        </div>
+                    </div>
+                    
+                    <div class="analytics-categories">
+                        <div class="category" v-if="analytics.patterns.dominant.length > 0">
+                            <h4>🔥 Aktivitas Dominan (≥70% completion)</h4>
+                            <ul>
+                                <li v-for="activity in analytics.patterns.dominant" :key="activity.activity_name">
+                                    <strong>{{ activity.activity_name }}</strong> - {{ activity.completion_rate }}% 
+                                    ({{ activity.times_completed }}/{{ activity.total_times_scheduled }})
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="category" v-if="analytics.patterns.struggling.length > 0">
+                            <h4>⚠️ Perlu Perhatian (<30% completion)</h4>
+                            <ul>
+                                <li v-for="activity in analytics.patterns.struggling" :key="activity.activity_name">
+                                    <strong>{{ activity.activity_name }}</strong> - {{ activity.completion_rate }}%
+                                    ({{ activity.times_completed }}/{{ activity.total_times_scheduled }})
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="category" v-if="analytics.patterns.consistent.length > 0">
+                            <h4>✅ Konsisten (50-69% completion)</h4>
+                            <ul>
+                                <li v-for="activity in analytics.patterns.consistent" :key="activity.activity_name">
+                                    <strong>{{ activity.activity_name }}</strong> - {{ activity.completion_rate }}%
+                                    ({{ activity.times_completed }}/{{ activity.total_times_scheduled }})
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="progress-section">
                     <h3>Progres Minggu Ini: {{ weeklyData.percentage }}%</h3>
                     <div class="progress-bar">
@@ -72,13 +121,13 @@
                         </div>
                         <ul class="activity-list">
                             <li v-for="activity in day.activities" :key="activity.id"
-                                :class="{ completed: activity.completed, disabled: !isCheckable(activity, day.date), dominant: activity.dominant }">
+                                :class="{ completed: activity.completed, disabled: !isCheckable(activity, day.date) }">
                                 <input type="checkbox" :id="activity.id + day.date" :checked="activity.completed"
                                        :disabled="!isCheckable(activity, day.date) || isEditMode"
                                        @change="updateActivity(activity, day.date)">
                                 <label :for="activity.id + day.date">
                                     <strong>{{ activity.time }}</strong> - {{ activity.name }}
-                                    <span v-if="activity.dominant" class="dominant-badge">Dominan</span>
+                                    <span v-if="getActivityInsight(activity)" class="activity-insight">{{ getActivityInsight(activity) }}</span>
                                 </label>
                                 <div v-if="isEditMode" class="activity-actions">
                                     <button @click="openEditModal(activity, day, index)" class="action-btn">Ubah</button>
@@ -88,7 +137,7 @@
                             <li v-if="day.activities.length === 0" class="no-activity">Tidak ada jadwal.</li>
                         </ul>
                         <div v-if="day.activities.length > 0" class="checklist-info-bottom">
-                            <span>Checklist hanya bisa diisi pada hari aktivitas dan dalam rentang 3 jam sebelum atau sesudah waktu aktivitas.</span>
+                            <!-- Checklist info moved to footer only -->
                         </div>
                     </div>
                 </div>
@@ -101,7 +150,6 @@
                 <form @submit.prevent="saveActivity">
                     <div class="form-group"><label for="activityName">Nama Aktivitas</label><input type="text" id="activityName" v-model="modal.activity.name" required></div>
                     <div class="form-group"><label for="activityTime">Waktu (JJ:MM)</label><input type="time" id="activityTime" v-model="modal.activity.time" required></div>
-                    <div class="form-group"><label><input type="checkbox" v-model="modal.activity.dominant"> Tandai sebagai aktivitas dominan</label></div>
                     <div class="modal-actions">
                         <button type="button" @click="closeModal" class="btn-secondary">Batal</button>
                         <button type="submit" class="btn-primary">Simpan</button>

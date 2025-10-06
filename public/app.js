@@ -31,6 +31,10 @@ createApp({
 
             // State untuk notifikasi
             notification: { message: '', type: '' },
+
+            // State untuk analytics/pattern tracking
+            analytics: null,
+            showAnalytics: false,
         };
     },
     computed: {
@@ -158,12 +162,11 @@ createApp({
             this.isEditMode = !this.isEditMode;
         },
         openAddModal(day, dayIndex) {
-            this.modal = { isEditing: false, dayIndex, dayOfWeek: new Date(day.date + 'T00:00:00').getDay(), activity: { id: null, name: '', time: '', dominant: false } };
+            this.modal = { isEditing: false, dayIndex, dayOfWeek: new Date(day.date + 'T00:00:00').getDay(), activity: { id: null, name: '', time: '' } };
             this.showModal = true;
         },
         openEditModal(activity, day, dayIndex) {
             this.modal = { isEditing: true, dayIndex, dayOfWeek: new Date(day.date + 'T00:00:00').getDay(), activity: { ...activity } };
-            if (typeof this.modal.activity.dominant === 'undefined') this.modal.activity.dominant = false;
             this.showModal = true;
         },
         closeModal() {
@@ -173,8 +176,8 @@ createApp({
             const endpoint = this.modal.isEditing ? window.API_BASE_URL + `/activities/${this.modal.activity.id}` : window.API_BASE_URL + '/activities';
             const method = this.modal.isEditing ? 'PUT' : 'POST';
             const body = this.modal.isEditing
-                ? { activity_name: this.modal.activity.name, start_time: this.modal.activity.time, dominant: !!this.modal.activity.dominant }
-                : { day_of_week: this.modal.dayOfWeek, activity_name: this.modal.activity.name, start_time: this.modal.activity.time, dominant: !!this.modal.activity.dominant };
+                ? { activity_name: this.modal.activity.name, start_time: this.modal.activity.time }
+                : { day_of_week: this.modal.dayOfWeek, activity_name: this.modal.activity.name, start_time: this.modal.activity.time };
             try {
                 const response = await fetch(endpoint, { method, headers: this.getAuthHeaders(), body: JSON.stringify(body) });
                 if (!response.ok) throw new Error('Gagal menyimpan data');
@@ -252,6 +255,36 @@ createApp({
             if (Math.abs(nowTotalMinutes - activityTotalMinutes) > 180) {
                 return 'Checklist hanya bisa diisi 3 jam sebelum atau sesudah waktu aktivitas.';
             }
+            return '';
+        },
+        
+        // === METODE ANALYTICS & PATTERN TRACKING ===
+        async fetchAnalytics(days = 30) {
+            if (!this.token) return;
+            try {
+                const response = await fetch(window.API_BASE_URL + `/activity-analytics?days=${days}`, {
+                    headers: this.getAuthHeaders()
+                });
+                if (response.status === 401 || response.status === 403) return this.logout();
+                this.analytics = await response.json();
+            } catch (error) {
+                console.error("Gagal mengambil data analytics:", error);
+                this.showNotification('Gagal memuat data analitik', 'error');
+            }
+        },
+        toggleAnalytics() {
+            this.showAnalytics = !this.showAnalytics;
+            if (this.showAnalytics && !this.analytics) {
+                this.fetchAnalytics();
+            }
+        },
+        getActivityInsight(activity) {
+            if (!this.analytics) return '';
+            const dominant = this.analytics.patterns.dominant.find(a => a.activity_name === activity.name);
+            const struggling = this.analytics.patterns.struggling.find(a => a.activity_name === activity.name);
+            
+            if (dominant) return '🔥 Dominan';
+            if (struggling) return '⚠️ Perlu Perhatian';
             return '';
         },
     },
