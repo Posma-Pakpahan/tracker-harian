@@ -16,10 +16,9 @@ logs/
 Thumbs.db
 .vscode/
 
-# Deployment scripts (keep tracked, but ignore secrets)
-!deploy.sh
-!setup-nginx.sh
-!setup-ssl.sh
+deploy.sh
+setup-nginx.sh
+setup-ssl.sh
 
 # PM2 ecosystem config
 !ecosystem.config.js
