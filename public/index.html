@@ -10,6 +10,9 @@
 </head>
 <body>
     <div id="app" v-cloak>
+        <div v-if="notification.message" :class="['notification', notification.type]">
+            {{ notification.message }}
+        </div>
         <div v-if="!token" class="auth-container">
             <div class="auth-box">
                 <form v-if="view === 'login'" @submit.prevent="login">

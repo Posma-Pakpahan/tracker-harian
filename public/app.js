@@ -7,7 +7,7 @@ createApp({
             weeklyData: { percentage: 0, days: [] },
             currentDate: new Date(),
             isLoading: true,
-            
+
             // State Autentikasi
             view: 'login', // Bisa 'login' atau 'register'
             token: localStorage.getItem('token') || null,
@@ -28,6 +28,9 @@ createApp({
 
             // State untuk waktu WIB
             wibNow: { dateString: '', hours: 0, minutes: 0 },
+
+            // State untuk notifikasi
+            notification: { message: '', type: '' },
         };
     },
     computed: {
@@ -48,6 +51,10 @@ createApp({
         }
     },
     methods: {
+        showNotification(message, type = 'info') {
+            this.notification = { message, type };
+            setTimeout(() => { this.notification = { message: '', type: '' }; }, 3000);
+        },
         // === METODE AUTENTIKASI ===
         async register() {
             this.authError = '';
@@ -123,14 +130,19 @@ createApp({
         async updateActivity(activity, date) {
             activity.completed = !activity.completed;
             try {
-                await fetch(window.API_BASE_URL + '/update', {
+                const response = await fetch(window.API_BASE_URL + '/update', {
                     method: 'POST',
                     headers: this.getAuthHeaders(),
                     body: JSON.stringify({ templateId: activity.id, date: date, completed: activity.completed })
                 });
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Gagal update aktivitas');
+                }
                 this.recalculatePercentage();
+                this.showNotification('Aktivitas berhasil diupdate!', 'success');
             } catch (error) {
-                console.error("Gagal update aktivitas:", error);
+                this.showNotification('Gagal update aktivitas: ' + error.message, 'error');
                 activity.completed = !activity.completed;
             }
         },
@@ -174,16 +186,10 @@ createApp({
             this.fetchWeekData(this.currentDate);
         },
         isCheckable(activity, date) {
+            // Checklist hanya boleh untuk hari ini
             const activityDate = new Date(date + 'T00:00:00');
             const todayDate = new Date(this.wibNow.dateString + 'T00:00:00');
-            if (activityDate < todayDate) return false;
-            if (activityDate.getTime() === todayDate.getTime()) {
-                const [activityHours, activityMinutes] = activity.time.split(':').map(Number);
-                const nowTotalMinutes = this.wibNow.hours * 60 + this.wibNow.minutes;
-                const activityTotalMinutes = activityHours * 60 + activityMinutes;
-                return nowTotalMinutes < activityTotalMinutes;
-            }
-            return true;
+            return activityDate.getTime() === todayDate.getTime();
         },
         formatDate(dateString) {
             const date = new Date(dateString + 'T00:00:00');
