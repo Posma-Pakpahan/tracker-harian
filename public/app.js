@@ -52,14 +52,13 @@ createApp({
         async register() {
             this.authError = '';
             try {
-                const response = await fetch('http://localhost:3000/api/register', {
+                const response = await fetch(window.API_BASE_URL + '/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(this.registerForm)
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Registrasi gagal');
-                
                 alert('Registrasi berhasil! Silakan login dengan akun baru Anda.');
                 this.view = 'login';
                 this.registerForm = { username: '', password: '' };
@@ -70,18 +69,16 @@ createApp({
         async login() {
             this.authError = '';
             try {
-                const response = await fetch('http://localhost:3000/api/login', {
+                const response = await fetch(window.API_BASE_URL + '/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(this.loginForm)
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Login gagal');
-
                 this.token = data.accessToken;
                 localStorage.setItem('token', this.token);
                 this.decodeToken();
-                
                 await this.fetchWeekData(this.currentDate);
                 this.updateWibNow();
                 setInterval(this.updateWibNow, 1000);
@@ -113,7 +110,7 @@ createApp({
             this.isLoading = true;
             try {
                 const dateString = date.toISOString().split('T')[0];
-                const response = await fetch(`http://localhost:3000/api/week-data?date=${dateString}`, {
+                const response = await fetch(window.API_BASE_URL + `/week-data?date=${dateString}`, {
                     headers: this.getAuthHeaders()
                 });
                 if (response.status === 401 || response.status === 403) return this.logout();
@@ -126,7 +123,7 @@ createApp({
         async updateActivity(activity, date) {
             activity.completed = !activity.completed;
             try {
-                await fetch('http://localhost:3000/api/update', {
+                await fetch(window.API_BASE_URL + '/update', {
                     method: 'POST',
                     headers: this.getAuthHeaders(),
                     body: JSON.stringify({ templateId: activity.id, date: date, completed: activity.completed })
@@ -152,7 +149,7 @@ createApp({
             this.showModal = false;
         },
         async saveActivity() {
-            const endpoint = this.modal.isEditing ? `http://localhost:3000/api/activities/${this.modal.activity.id}` : 'http://localhost:3000/api/activities';
+            const endpoint = this.modal.isEditing ? window.API_BASE_URL + `/activities/${this.modal.activity.id}` : window.API_BASE_URL + '/activities';
             const method = this.modal.isEditing ? 'PUT' : 'POST';
             const body = this.modal.isEditing ? { activity_name: this.modal.activity.name, start_time: this.modal.activity.time } : { day_of_week: this.modal.dayOfWeek, activity_name: this.modal.activity.name, start_time: this.modal.activity.time };
             try {
@@ -165,7 +162,7 @@ createApp({
         async deleteActivity(activity) {
             if (!confirm(`Apakah Anda yakin ingin menghapus aktivitas "${activity.name}"?`)) return;
             try {
-                const response = await fetch(`http://localhost:3000/api/activities/${activity.id}`, { method: 'DELETE', headers: this.getAuthHeaders() });
+                const response = await fetch(window.API_BASE_URL + `/activities/${activity.id}`, { method: 'DELETE', headers: this.getAuthHeaders() });
                 if (!response.ok) throw new Error('Gagal menghapus data');
                 await this.fetchWeekData(this.currentDate);
             } catch (error) { console.error("Error deleting activity:", error); alert("Gagal menghapus aktivitas."); }

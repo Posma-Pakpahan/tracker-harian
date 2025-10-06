@@ -1,0 +1,47 @@
+# Node modules
+node_modules/
+
+# Database
+schedule.db
+
+# Environment variables
+.env
+
+# Logs
+*.log
+logs/
+
+# OS/Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Deployment scripts (keep tracked, but ignore secrets)
+!deploy.sh
+!setup-nginx.sh
+!setup-ssl.sh
+
+# PM2 ecosystem config
+!ecosystem.config.js
+
+# Ignore package-lock if using yarn
+package-lock.json
+# Uncomment if using yarn
+# yarn.lock
+
+# Ignore SSL certs if present
+ssl/
+*.pem
+*.crt
+*.key
+
+# Ignore backups/temp
+*.bak
+*.tmp
+
+# Ignore test coverage
+coverage/
+
+# Ignore build artifacts
+/dist
+/build
