@@ -51,6 +51,7 @@ createApp({
         }
     },
     methods: {
+    // ...existing code...
         showNotification(message, type = 'info') {
             this.notification = { message, type };
             setTimeout(() => { this.notification = { message: '', type: '' }; }, 3000);
@@ -235,6 +236,20 @@ createApp({
         },
         updateWibNow() {
             this.wibNow = this.getWibTimeComponents();
+        },
+        checklistInfo(activity, date) {
+            const activityDate = new Date(date + 'T00:00:00');
+            const todayDate = new Date(this.wibNow.dateString + 'T00:00:00');
+            if (activityDate.getTime() !== todayDate.getTime()) {
+                return 'Checklist hanya bisa diisi pada hari aktivitas.';
+            }
+            const [activityHours, activityMinutes] = activity.time.split(':').map(Number);
+            const activityTotalMinutes = activityHours * 60 + activityMinutes;
+            const nowTotalMinutes = this.wibNow.hours * 60 + this.wibNow.minutes;
+            if (Math.abs(nowTotalMinutes - activityTotalMinutes) > 180) {
+                return 'Checklist hanya bisa diisi 3 jam sebelum atau sesudah waktu aktivitas.';
+            }
+            return '';
         },
     },
 }).mount('#app');
