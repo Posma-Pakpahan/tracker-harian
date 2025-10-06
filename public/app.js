@@ -205,7 +205,10 @@ createApp({
             return Math.abs(nowTotalMinutes - activityTotalMinutes) <= 180; // 3 jam = 180 menit
         },
         formatDate(dateString) {
-        // Info untuk checklist
+            const date = new Date(dateString + 'T00:00:00');
+            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+        },
+
         checklistInfo(activity, date) {
             const activityDate = new Date(date + 'T00:00:00');
             const todayDate = new Date(this.wibNow.dateString + 'T00:00:00');
@@ -219,9 +222,6 @@ createApp({
                 return 'Checklist hanya bisa diisi 3 jam sebelum atau sesudah waktu aktivitas.';
             }
             return '';
-        },
-            const date = new Date(dateString + 'T00:00:00');
-            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
         },
         recalculatePercentage() {
             let totalTasks = 0, completedTasks = 0;
