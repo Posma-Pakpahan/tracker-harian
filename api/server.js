@@ -116,21 +116,36 @@ app.post('/api/update', authenticateToken, (req, res) => {
 });
 app.post('/api/activities', authenticateToken, (req, res) => {
     const userId = req.user.id;
-    const { day_of_week, activity_name, start_time } = req.body;
-    const sql = 'INSERT INTO schedule_templates (user_id, day_of_week, activity_name, start_time) VALUES (?, ?, ?, ?)';
-    db.run(sql, [userId, day_of_week, activity_name, start_time], function(err) { if (err) return res.status(500).json({ error: err.message }); res.json({ success: true, id: this.lastID }); });
+    const { day_of_week, activity_name, start_time, dominant } = req.body;
+    const sql = 'INSERT INTO schedule_templates (user_id, day_of_week, activity_name, start_time, dominant) VALUES (?, ?, ?, ?, ?)';
+    db.run(sql, [userId, day_of_week, activity_name, start_time, dominant ? 1 : 0], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        // Sync to future weeks: add to template for all future weeks
+        // (since template is per user, this is already handled)
+        res.json({ success: true, id: this.lastID });
+    });
 });
 app.put('/api/activities/:id', authenticateToken, (req, res) => {
     const userId = req.user.id;
-    const { activity_name, start_time } = req.body;
-    const sql = 'UPDATE schedule_templates SET activity_name = ?, start_time = ? WHERE id = ? AND user_id = ?';
-    db.run(sql, [activity_name, start_time, req.params.id, userId], function(err) { if (err) return res.status(500).json({ error: err.message }); res.json({ success: true, changes: this.changes }); });
+    const { activity_name, start_time, dominant } = req.body;
+    const sql = 'UPDATE schedule_templates SET activity_name = ?, start_time = ?, dominant = ? WHERE id = ? AND user_id = ?';
+    db.run(sql, [activity_name, start_time, dominant ? 1 : 0, req.params.id, userId], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true, changes: this.changes });
+    });
 });
 app.delete('/api/activities/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const userId = req.user.id;
-    const sql = 'DELETE FROM schedule_templates WHERE id = ? AND user_id = ?';
-    db.run(sql, [id, userId], function(err) { if (err) return res.status(500).json({ error: err.message }); res.json({ success: true, changes: this.changes }); });
+    // Delete all matching activities for user and day_of_week (sync future weeks)
+    db.get('SELECT day_of_week, activity_name FROM schedule_templates WHERE id = ? AND user_id = ?', [id, userId], (err, row) => {
+        if (err || !row) return res.status(500).json({ error: 'Aktivitas tidak ditemukan' });
+        const sql = 'DELETE FROM schedule_templates WHERE user_id = ? AND day_of_week = ? AND activity_name = ?';
+        db.run(sql, [userId, row.day_of_week, row.activity_name], function(err2) {
+            if (err2) return res.status(500).json({ error: err2.message });
+            res.json({ success: true, changes: this.changes });
+        });
+    });
 });
 
 app.listen(PORT, () => {

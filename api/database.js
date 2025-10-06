@@ -16,6 +16,7 @@ db.serialize(() => {
         day_of_week INTEGER NOT NULL,
         activity_name TEXT NOT NULL,
         start_time TEXT NOT NULL,
+        dominant INTEGER DEFAULT 0,
         FOREIGN KEY (user_id) REFERENCES users (id)
     )`);
 

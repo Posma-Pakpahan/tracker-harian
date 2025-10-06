@@ -158,11 +158,12 @@ createApp({
             this.isEditMode = !this.isEditMode;
         },
         openAddModal(day, dayIndex) {
-            this.modal = { isEditing: false, dayIndex, dayOfWeek: new Date(day.date + 'T00:00:00').getDay(), activity: { id: null, name: '', time: '' } };
+            this.modal = { isEditing: false, dayIndex, dayOfWeek: new Date(day.date + 'T00:00:00').getDay(), activity: { id: null, name: '', time: '', dominant: false } };
             this.showModal = true;
         },
         openEditModal(activity, day, dayIndex) {
             this.modal = { isEditing: true, dayIndex, dayOfWeek: new Date(day.date + 'T00:00:00').getDay(), activity: { ...activity } };
+            if (typeof this.modal.activity.dominant === 'undefined') this.modal.activity.dominant = false;
             this.showModal = true;
         },
         closeModal() {
@@ -171,7 +172,9 @@ createApp({
         async saveActivity() {
             const endpoint = this.modal.isEditing ? window.API_BASE_URL + `/activities/${this.modal.activity.id}` : window.API_BASE_URL + '/activities';
             const method = this.modal.isEditing ? 'PUT' : 'POST';
-            const body = this.modal.isEditing ? { activity_name: this.modal.activity.name, start_time: this.modal.activity.time } : { day_of_week: this.modal.dayOfWeek, activity_name: this.modal.activity.name, start_time: this.modal.activity.time };
+            const body = this.modal.isEditing
+                ? { activity_name: this.modal.activity.name, start_time: this.modal.activity.time, dominant: !!this.modal.activity.dominant }
+                : { day_of_week: this.modal.dayOfWeek, activity_name: this.modal.activity.name, start_time: this.modal.activity.time, dominant: !!this.modal.activity.dominant };
             try {
                 const response = await fetch(endpoint, { method, headers: this.getAuthHeaders(), body: JSON.stringify(body) });
                 if (!response.ok) throw new Error('Gagal menyimpan data');

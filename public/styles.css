@@ -1,3 +1,12 @@
+.app-footer {
+	width: 100%;
+	margin-top: 40px;
+	padding: 0 0 24px 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background: transparent;
+}
 .checklist-info-bottom {
 	display: block;
 	font-size: 0.97em;
@@ -91,6 +100,19 @@ header h1 { text-align: center; color: #1877f2; }
 /* Activity List */
 .activity-list { list-style: none; padding: 0; margin: 0; }
 .activity-list li { display: flex; align-items: center; padding: 10px 5px; border-radius: 5px; transition: background-color 0.2s; }
+.activity-list li.dominant {
+	background: #fffbe6;
+	border-left: 4px solid #f7b500;
+}
+.dominant-badge {
+	background: #f7b500;
+	color: #fff;
+	font-size: 0.8em;
+	padding: 2px 8px;
+	border-radius: 12px;
+	margin-left: 8px;
+	vertical-align: middle;
+}
 .activity-list li:not(:last-child) { border-bottom: 1px solid #eee; }
 .activity-list li.completed label { text-decoration: line-through; color: #888; }
 .activity-list li.disabled { opacity: 0.6; cursor: not-allowed; }

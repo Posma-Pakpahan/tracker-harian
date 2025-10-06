@@ -71,13 +71,14 @@
                             <button v-if="isEditMode" @click="openAddModal(day, index)" class="add-btn">+</button>
                         </div>
                         <ul class="activity-list">
-                            <li v-for="activity in day.activities" :key="activity.id" 
-                                :class="{ completed: activity.completed, disabled: !isCheckable(activity, day.date) }">
+                            <li v-for="activity in day.activities" :key="activity.id"
+                                :class="{ completed: activity.completed, disabled: !isCheckable(activity, day.date), dominant: activity.dominant }">
                                 <input type="checkbox" :id="activity.id + day.date" :checked="activity.completed"
                                        :disabled="!isCheckable(activity, day.date) || isEditMode"
                                        @change="updateActivity(activity, day.date)">
                                 <label :for="activity.id + day.date">
                                     <strong>{{ activity.time }}</strong> - {{ activity.name }}
+                                    <span v-if="activity.dominant" class="dominant-badge">Dominan</span>
                                 </label>
                                 <div v-if="isEditMode" class="activity-actions">
                                     <button @click="openEditModal(activity, day, index)" class="action-btn">Ubah</button>
@@ -89,8 +90,6 @@
                         <div v-if="day.activities.length > 0" class="checklist-info-bottom">
                             <span>Checklist hanya bisa diisi pada hari aktivitas dan dalam rentang 3 jam sebelum atau sesudah waktu aktivitas.</span>
                         </div>
-                            <li v-if="day.activities.length === 0" class="no-activity">Tidak ada jadwal.</li>
-                        </ul>
                     </div>
                 </div>
             </main>
@@ -102,6 +101,7 @@
                 <form @submit.prevent="saveActivity">
                     <div class="form-group"><label for="activityName">Nama Aktivitas</label><input type="text" id="activityName" v-model="modal.activity.name" required></div>
                     <div class="form-group"><label for="activityTime">Waktu (JJ:MM)</label><input type="time" id="activityTime" v-model="modal.activity.time" required></div>
+                    <div class="form-group"><label><input type="checkbox" v-model="modal.activity.dominant"> Tandai sebagai aktivitas dominan</label></div>
                     <div class="modal-actions">
                         <button type="button" @click="closeModal" class="btn-secondary">Batal</button>
                         <button type="submit" class="btn-primary">Simpan</button>
@@ -110,6 +110,11 @@
             </div>
         </div>
     </div>
+    <footer class="app-footer">
+        <div class="checklist-info-bottom">
+            <span>Checklist hanya bisa diisi pada hari aktivitas dan dalam rentang 3 jam sebelum atau sesudah waktu aktivitas.</span>
+        </div>
+    </footer>
     <script src="app.js"></script>
 </body>
 </html>
