@@ -11,7 +11,10 @@
 <body>
     <div id="app" v-cloak>
         <div v-if="notification.message" :class="['notification', notification.type]">
-            {{ notification.message }}
+            <span v-if="notification.type === 'success'" class="notif-icon">✔️</span>
+            <span v-if="notification.type === 'error'" class="notif-icon">❌</span>
+            <span v-if="notification.type === 'info'" class="notif-icon">ℹ️</span>
+            <span class="notif-text">{{ notification.message }}</span>
         </div>
         <div v-if="!token" class="auth-container">
             <div class="auth-box">
@@ -76,6 +79,9 @@
                                 <label :for="activity.id + day.date">
                                     <strong>{{ activity.time }}</strong> - {{ activity.name }}
                                 </label>
+                                <div v-if="!isCheckable(activity, day.date)" class="checklist-info">
+                                    <span>{{ checklistInfo(activity, day.date) }}</span>
+                                </div>
                                 <div v-if="isEditMode" class="activity-actions">
                                     <button @click="openEditModal(activity, day, index)" class="action-btn">Ubah</button>
                                     <button @click="deleteActivity(activity)" class="action-btn delete">Hapus</button>

@@ -1,3 +1,27 @@
+.notif-icon {
+	font-size: 1.3em;
+	margin-right: 8px;
+	vertical-align: middle;
+	animation: pop 0.4s;
+}
+.notif-text {
+	vertical-align: middle;
+}
+@keyframes pop {
+	0% { transform: scale(0.5); opacity: 0; }
+	60% { transform: scale(1.2); opacity: 1; }
+	100% { transform: scale(1); opacity: 1; }
+}
+/* Checklist Info */
+.checklist-info {
+	display: block;
+	font-size: 0.95em;
+	color: #c82333;
+	background: #fdecea;
+	border-radius: 6px;
+	padding: 6px 12px;
+	margin: 6px 0 0 0;
+}
 /* Notification Styles */
 .notification {
 	position: fixed;

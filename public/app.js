@@ -76,10 +76,17 @@ createApp({
         async login() {
             this.authError = '';
             try {
+                // Get user IP
+                let ip = '';
+                try {
+                    const ipRes = await fetch('https://api.ipify.org?format=json');
+                    const ipData = await ipRes.json();
+                    ip = ipData.ip;
+                } catch {}
                 const response = await fetch(window.API_BASE_URL + '/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(this.loginForm)
+                    body: JSON.stringify({ ...this.loginForm, ip })
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Login gagal');
@@ -186,12 +193,32 @@ createApp({
             this.fetchWeekData(this.currentDate);
         },
         isCheckable(activity, date) {
-            // Checklist hanya boleh untuk hari ini
+            // Checklist hanya boleh untuk hari ini dan dalam rentang 3 jam sebelum/sesudah waktu aktivitas
             const activityDate = new Date(date + 'T00:00:00');
             const todayDate = new Date(this.wibNow.dateString + 'T00:00:00');
-            return activityDate.getTime() === todayDate.getTime();
+            if (activityDate.getTime() !== todayDate.getTime()) return false;
+            // Cek rentang waktu
+            const [activityHours, activityMinutes] = activity.time.split(':').map(Number);
+            const activityTotalMinutes = activityHours * 60 + activityMinutes;
+            const nowTotalMinutes = this.wibNow.hours * 60 + this.wibNow.minutes;
+            return Math.abs(nowTotalMinutes - activityTotalMinutes) <= 180; // 3 jam = 180 menit
         },
         formatDate(dateString) {
+        // Info untuk checklist
+        checklistInfo(activity, date) {
+            const activityDate = new Date(date + 'T00:00:00');
+            const todayDate = new Date(this.wibNow.dateString + 'T00:00:00');
+            if (activityDate.getTime() !== todayDate.getTime()) {
+                return 'Checklist hanya bisa diisi pada hari aktivitas.';
+            }
+            const [activityHours, activityMinutes] = activity.time.split(':').map(Number);
+            const activityTotalMinutes = activityHours * 60 + activityMinutes;
+            const nowTotalMinutes = this.wibNow.hours * 60 + this.wibNow.minutes;
+            if (Math.abs(nowTotalMinutes - activityTotalMinutes) > 180) {
+                return 'Checklist hanya bisa diisi 3 jam sebelum atau sesudah waktu aktivitas.';
+            }
+            return '';
+        },
             const date = new Date(dateString + 'T00:00:00');
             return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
         },
