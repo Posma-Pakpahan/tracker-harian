@@ -79,14 +79,16 @@
                                 <label :for="activity.id + day.date">
                                     <strong>{{ activity.time }}</strong> - {{ activity.name }}
                                 </label>
-                                <div v-if="!isCheckable(activity, day.date)" class="checklist-info">
-                                    <span>{{ checklistInfo(activity, day.date) }}</span>
-                                </div>
                                 <div v-if="isEditMode" class="activity-actions">
                                     <button @click="openEditModal(activity, day, index)" class="action-btn">Ubah</button>
                                     <button @click="deleteActivity(activity)" class="action-btn delete">Hapus</button>
                                 </div>
                             </li>
+                            <li v-if="day.activities.length === 0" class="no-activity">Tidak ada jadwal.</li>
+                        </ul>
+                        <div v-if="day.activities.length > 0" class="checklist-info-bottom">
+                            <span>Checklist hanya bisa diisi pada hari aktivitas dan dalam rentang 3 jam sebelum atau sesudah waktu aktivitas.</span>
+                        </div>
                             <li v-if="day.activities.length === 0" class="no-activity">Tidak ada jadwal.</li>
                         </ul>
                     </div>
